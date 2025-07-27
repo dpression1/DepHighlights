@@ -158,7 +158,7 @@
             document.querySelectorAll('.copy-video-link-btn').forEach(button => {
                 button.addEventListener('click', (event) => {
                     const videoPath = button.dataset.videoPath;
-                    const videoUrl = window.location.origin + videoPath;
+                    const videoUrl = `${window.location.origin}/videos/${encodeURIComponent(videoPath.replace(/^\/+/, ''))}`;
                     copyLink(videoUrl);
                 });
                 setupTooltip(button);
