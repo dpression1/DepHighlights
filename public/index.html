@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Depression Highlights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #be185d;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 sm:p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-center mb-10 text-rose-300">
+            Depression Highlights
+        </h1>
+        <div id="loading-indicator" class="loader"></div>
+        <div id="video-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+        </div>
+        <div id="error-message" class="text-center text-red-500 mt-8 text-lg font-medium hidden">
+            Failed to load videos. Please check the repository path or try again later (GitHub API rate limit might be hit).
+        </div>
+    </div>
+
+    <script>
+        const owner = 'dpression1';
+        const repo = 'DepHighlights';
+        const path = 'public';
+        const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+        const videoGrid = document.getElementById('video-grid');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+
+        async function fetchVideos() {
+            loadingIndicator.style.display = 'block';
+            errorMessage.style.display = 'none';
+            try {
+                const response = await fetch(githubApiUrl);
+                if (!response.ok) {
+                    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+                }
+                const files = await response.json();
+
+                if (!Array.isArray(files)) {
+                    throw new Error("Unexpected GitHub API response format.");
+                }
+
+                const videoFiles = files.filter(file => 
+                    file.type === 'file' && 
+                    (file.name.endsWith('.mp4') || file.name.endsWith('.webm') || file.name.endsWith('.ogg'))
+                );
+
+                if (videoFiles.length === 0) {
+                    const noVideosText = document.createElement('p');
+                    noVideosText.className = 'text-center text-gray-400 text-xl mt-8 col-span-full';
+                    noVideosText.textContent = 'No highlight videos found in the specified path.';
+                    videoGrid.appendChild(noVideosText);
+                    loadingIndicator.style.display = 'none';
+                    return;
+                }
+
+                videoFiles.forEach(file => {
+                    const sourceUrl = file.download_url;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-800 rounded-xl shadow-lg p-4 flex flex-col items-center transition-transform transform hover:scale-105';
+
+                    const video = document.createElement('video');
+                    video.src = sourceUrl;
+                    video.controls = true;
+                    video.muted = true;
+                    video.autoplay = false;
+                    video.className = 'w-full h-auto rounded-lg object-cover';
+                    video.onerror = function() {
+                        console.error('Error loading video:', this.src);
+                        this.style.display = 'none';
+                        const errorVideoText = document.createElement('p');
+                        errorVideoText.className = 'text-red-400 text-sm mt-2';
+                        errorVideoText.textContent = `Could not load video: ${file.name}.`;
+                        card.appendChild(errorVideoText);
+                    };
+
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'mt-4 px-4 py-2 bg-rose-600 text-white font-semibold rounded-lg hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-opacity-75 transition-colors duration-200';
+                    copyButton.textContent = 'Copy Link';
+                    copyButton.onclick = function() {
+                        const tempInput = document.createElement('input');
+                        document.body.appendChild(tempInput);
+                        tempInput.value = sourceUrl;
+                        tempInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempInput);
+                        
+                        copyButton.textContent = 'Copied!';
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copy Link';
+                        }, 2000);
+                    };
+
+                    card.appendChild(video);
+                    card.appendChild(copyButton);
+                    videoGrid.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error('Failed to fetch videos from GitHub:', error);
+                errorMessage.style.display = 'block';
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchVideos);
+    </script>
+</body>
+</html>
